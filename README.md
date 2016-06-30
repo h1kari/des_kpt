@@ -1,7 +1,7 @@
 des_kpt
 =======
 
-This code allows you to submit known plaintext cracking jobs to the http://crack.sh DES cracking system by providing a way to verify your implementation matches and package up your job info into a token that can be submitted.
+This code allows you to submit known plaintext cracking jobs to the https://crack.sh DES cracking system by providing a way to verify your implementation matches and package up your job info into a token that can be submitted.
 
 Verifying Encryption
 --------------------
@@ -42,7 +42,7 @@ This allows you to specify the `ciphertext`, `key`, and optional `iv` (in the ca
 Submit a Decrypt Job
 ----------------------
 
-Now, once you've verified your implementation matches, you can submit your job to http://crack.sh. To do that, enter in your parameters using the `parse` command:
+Now, once you've verified your implementation matches, you can submit your job to https://crack.sh. To do that, enter in your parameters using the `parse` command:
 
 ```
 $ ./des_kpt.py parse -p 0123456789abcdef -m ffffffffffff0000 -c 825f48ccfd6829f0
