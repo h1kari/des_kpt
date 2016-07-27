@@ -6,6 +6,7 @@ import sys
 from des_kpt.commands.EncryptCommand import EncryptCommand
 from des_kpt.commands.DecryptCommand import DecryptCommand
 from des_kpt.commands.ParseCommand import ParseCommand
+from des_kpt.commands.KerbCommand import KerbCommand
 
 __author__  = "David Hulton"
 __license__ = "BSD"
@@ -13,7 +14,7 @@ __copyright__ = "Copyright 2016, David Hulton"
 
 class HelpCommand:
 
-    COMMANDS = {'parse' : ParseCommand, 'encrypt' : EncryptCommand, 'decrypt' : DecryptCommand}
+    COMMANDS = {'parse' : ParseCommand, 'encrypt' : EncryptCommand, 'decrypt' : DecryptCommand, 'kerb' : KerbCommand}
 
     def __init__(self, argv):
         self.argv = argv
@@ -47,6 +48,7 @@ class HelpCommand:
       parse   -p <plaintext> -m <mask> -c <ciphertext> [-e]
       encrypt -p <plaintext> -k <key> [-i <iv>]
       decrypt -c <ciphertext> -k <key> [-i <iv>]
+      kerb    -i <input>
       help    <command>
 """)
 

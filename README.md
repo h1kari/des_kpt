@@ -71,6 +71,190 @@ crack.sh Submission = $97$ASNFZ4mrze////////8AAIJfSMz9aAAA
 
 In this case we're performing a brute force encrypt (notice E = 1) which will return all keys that result in a `ciphertext` which matches `x & M == CT`. Note also that `CT` has already been masked by `M` like `PT` is in decrypt mode.
 
+Kerberos
+--------
+
+To crack kerberos exchanges, simply point the tool toward a .pcap file containing kerberos5 AS-REQ, AS-REP, TGS-REQ, or TGS-REP messages:
+
+```
+$ ./des_kpt.py kerb -i kerb.pcap
+parsing inputFile = kerb.pcap
+
+AS-REQ 192.168.1.11 -> 192.168.1.27: test3@DOMAIN -> krbtgt/DOMAIN@DOMAIN (Authenticator):
+                 PT = 37008d069d43a296
+                  M = ff00ffffffffffff
+                 CT = de3dcc5ca0bb182f
+                  E = 0
+crack.sh Submission = $98$NwCNBp1Dopb/AP///////949zFyguxgv
+...
+```
+
+This option extracts the encrypted data from the kerberos5 messages and assembles a submission token using static known plaintext for the messages. These are the values that it extracts:
+
+```
+AS-REQ ::= [APPLICATION 10] KDC-REQ
+TGS-REQ ::= [APPLICATION 12] KDC-REQ
+KDC-REQ ::= SEQUENCE {
+    pvno[1]     INTEGER,
+    msg-type[2] INTEGER,
+    # Contains encapsulated AP-REQ (for TGS-REQ) or Authenticator (for AS-REQ)
+    padata[3]   SEQUENCE OF PA-DATA OPTIONAL,
+    req-body[4] KDC-REQ-BODY
+}
+
+AS-REP ::= [APPLICATION 11] KDC-REP
+TGS-REP ::= [APPLICATION 13] KDC-REP
+KDC-REP ::= SEQUENCE {
+    pvno[0]             INTEGER,
+    msg-type[1]         INTEGER,
+    padata[2]           SEQUENCE OF PA-DATA OPTIONAL,
+    crealm[3]           Realm,
+    cname[4]            PrincipalName,
+    # Contains TGT (for AS-REP) or ST (for TGS-REP)
+    ticket[5]           Ticket,     -- Ticket
+    # Contains encrypted session key data
+    enc-part[6]         EncryptedData   -- EncKDCRepPart
+}
+
+# padata in AS-REQ or TGS-REQ Packet
+PA-DATA ::= SEQUENCE {
+    # == PA_TGS_REQ (TGS-REQ TGT) or == PA_ENC_TIMESTAMP (AS-REQ Authenticator)
+    padata-type[1]  INTEGER,
+    pa-data[2]  OCTET STRING -- might be encoded AP-REQ
+}
+
+# For padata-type == PA_TGS_REQ (TGS-REQ TGT)
+AP-REQ ::= [APPLICATION 14] SEQUENCE {
+    pvno[0]             INTEGER,
+    msg-type[1]         INTEGER,
+    ap-options[2]       APOptions,
+    # TGT
+    ticket[3]           Ticket,
+    # Authenticator encrypted with client session key
+    authenticator[4]    EncryptedData   -- Authenticator
+}
+
+# Ticket in encapsulated AP-REQ in TGS-REQ
+Ticket ::=  [APPLICATION 1] SEQUENCE {
+    tkt-vno[0]  INTEGER,
+    realm[1]    Realm,
+    sname[2]    PrincipalName,
+    # TGT encrypted with KDC's master key
+    enc-part[3] EncryptedData   -- EncTicketPart
+}
+
+# Actual encrypted data is associated with etype and optional kvno
+EncryptedData ::=   SEQUENCE {
+    # We check to see if etype == DES_CBC_CRC (1)
+    etype[0]    INTEGER, -- EncryptionType
+    kvno[1]     INTEGER OPTIONAL,
+    # Actual ciphertext
+    cipher[2]   OCTET STRING -- CipherText
+}
+```
+
+| Packet    | Ciphertext                                  | Type          | Key                | Contains                   |
+| --------- | ------------------------------------------- | ------------- | ------------------ | -------------------------- |
+| `AS-REQ`  | `padata[PA_ENC_TIMESTAMP].cipher`           | Authenticator | Client Master      | Timestamp                  |
+| `AS-REP`  | `ticket.enc-part.cipher`                    | TGT           | KDC Master         | KDC/Client Session Key     |
+| `AS-REP`  | `enc-part.cipher`                           | TGS enc-part  | Client Master      | KDC/Client Session Key     |
+| `TGS-REQ` | `padata[PA_TGS_REQ].ticket.enc-part.cipher` | TGT           | KDC Master         | KDC/Client Session Key     | 
+| `TGS-REQ` | `padata[PA_TGS_REQ].authenticator.cipher`   | Authenticator | KDC/Client Session | Timestamp                  |
+| `TGS-REP` | `ticket.enc-part.cipher`                    | ST            | Service Master     | Service/Client Session Key |
+| `TGS-REP` | `enc-part.cipher`                           | TGS enc-part  | KDC/Client Session | Service/Client Session Key |
+
+Determining Plaintext
+---------------------
+
+The ASN.1 format of the messages that are encrypted has a number of known plaintext components as DER is a canonical form of BER there are certain parts of the format that must always exist in the plaintext. Here is an outline of the plaintext for the different encrypted portions:
+
+**Authenticator**
+
+```
+00: 7aec 646d 6134 d6e1  z.dma4.. # P1 - Confounder
+08: 230f af7a 301a a011  #..z0... # P2 - [8:12] = CRC, [12:16] = ASN.1
+                                  #      30 - Sequence(
+                                  #      1a -   Length=26)
+                                  #      a0 - .Idx(0,
+                                  #      11 -   Length=17,
+10: 180f 3230 3136 3037  ..201607 # P3 - ASN.1                          # Static
+                                  #      18 -   GeneralizedTime(        # Static
+                                  #      0f -     Length=15, Value=     # Static
+                                  #      323031363037 - "201607"        # Easily derived from current year/month
+18: 3231 3230 3138 3335  21201835 # P4 - ASN.1
+                                  #      3231323031383335 - "21201835"
+20: 5aa1 0502 030c 85ba  Z....... # P5 - ASN.1
+                                  #      5a -     "Z")),
+                                  #      a1 - .Idx(1,
+                                  #      05 -   Length=5,
+                                  #      02 -   Integer(
+                                  #      03 -     Length=3,
+                                  #      0c85ba - Value=820666)
+```
+
+We've identified the 3rd block of Plaintext (P3) as the one we're going to target. Because everything is encrypted with DES-CBC, it will be xor'ed with the Ciphertext of the previous block, so to determine our plaintext we'll do:
+
+PT = CT2 ^ "\x18\x0f"+date("YYYYMM")
+CT = CT3
+M  = ffffffffffffffff
+
+If you're iffy on the exact month that the server/client have their clock set to, you can adjust the mask so the job works regardless:
+
+M  = ffffffffffffff00
+
+**Tickets (TGT or ST)**
+
+```
+00: 194c b18f 1b9c ebf7  .L...... # P1 - Confounder
+08: 0600 7f55 6381 d630  ...Uc..0 # P2 - [8:12] = CRC, [12:16] = ASN.1
+                                  #      63 - Application(Tag=3,
+                                  #      81d6 - Length=214)
+                                  #      30 -   .Sequence(
+10: 81d3 a007 0305 0000  ........ # P3 - ASN.1
+                                  #      81d3 -   Length=211)           # Mostly determined from the encrypted data size (adjust mask for padding)
+                                  #      a0 -     .Idx(0,               # Static
+                                  #      07 -       Length=7)           # Static
+                                  #      03 -       .BitString(         # Static
+                                  #      05 -         Length=5, Value=  # Static
+                                  #      0000 -       "\x00\x00"...     # Static (I think)
+...
+```
+
+It's pretty safe to assume that P3 will be mostly static, the overall length of the message will change (and can be roughly determined by the encrypted message size) but the ASN.1 will stay the same. The following shows the rough calculation of PT for messages where the .Length value is between 128 and 255. The PT ASN.1 should be generated according to the actual enc-part length. To stay on the safe side, we currently only support message sizes between 128-256 and just use the top length bit as known plaintext (as it should always be high when the length extension is set to 81).
+
+PT = CT2 ^ "\x81"+len(enc-part)-15-8+"\xa0\x07\x03\x05\x0000"
+CT = CT3
+M  = ff80ffffffffffff
+
+**TGS enc-part**
+
+```
+00: e293 cade 03ca 8663  .......c # P1 - Confounder
+08: 9b78 56e2 7a81 f030  .xV.z..0 # P2 - [8:12] = CRC, [12:16] = ASN.1
+                                  #      7a - Application(Tag=26,
+                                  #      81f0 - Length=240)
+                                  #      30 -   .Sequence(
+10: 81ed a013 3011 a003  ....0... # P3 - ASN.1
+                                  #      813d     Length=237)           # Mostly determined from the encrypted data size (adjust mask for padding)
+                                  #      a0       .Idx(0,               # Static
+                                  #      13         Length=19)          # Static
+                                  #      30         .Sequence(          # Static
+                                  #      11           Length=17)        # Static
+                                  #      a0           .Idx(0,           # Static
+                                  #      03             Length=3)       # Static
+...
+```
+
+Same for this message, the only dynamic part of P3 is the length which can be roughly determined based on the enc-part length:
+
+PT = CT2 ^ "\x81"+len(enc-part)-15-8+"\xa0\x13\x30\x11\xa0\x03"
+CT = CT3
+M  = ff80ffffffffffff
+
+**DES-CBC-MD5?**
+
+Note that all of these techniques can be easily adapted to work against DES-CBC-MD5. The only differnce is that the checksum is 8 bytes instead of 4 bytes with DES-CBC-CRC which then pushes the ASN.1 over. There's relatively the same amount of known plaintext to work with in both cases and support will be added in the near future.
+
 Printed Parameters
 ------------------
 
@@ -86,13 +270,20 @@ Printed Parameters
 | `KP`      | 64-bit Key with Parity |
 | `E`       | 1 = Encrypt, 0 = Decrypt |
 
-
 Bug tracker
 -----------
 
 Have a bug? Please create an issue here on GitHub!
 
 https://github.com/h1kari/des_kpt/issues
+
+TODO
+----
+
+1. Make sure all data is extracted correctly from packets for kerberos
+2. Try to make Authenticator timestamp known plaintext based on the plaintext timestamp in the packet
+3. Add documentation on how the ASN1 known plaintext is deteremined
+4. Add parity key input option for encrypt/decrypt commands
 
 Copyright
 ---------

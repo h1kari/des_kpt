@@ -7,6 +7,7 @@ from des_kpt.commands.HelpCommand import HelpCommand
 from des_kpt.commands.EncryptCommand import EncryptCommand
 from des_kpt.commands.DecryptCommand import DecryptCommand
 from des_kpt.commands.ParseCommand import ParseCommand
+from des_kpt.commands.KerbCommand import KerbCommand
 
 __author__ = "David Hulton"
 __license__ = "BSD"
@@ -22,6 +23,8 @@ def main(argv):
         EncryptCommand(argv[1:]).execute()
     elif argv[0] == 'decrypt':
         DecryptCommand(argv[1:]).execute()
+    elif argv[0] == 'kerb':
+        KerbCommand(argv[1:]).execute()
     elif argv[0] == 'help':
         HelpCommand(argv[1:]).execute()
     else:
