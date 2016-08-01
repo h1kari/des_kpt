@@ -41,7 +41,9 @@ class DecryptCommand(ParseCommand):
 
         key = binascii.unhexlify(key.replace(":", ""))
 
-        if len(key) != 7:
+        if len(ley) == 8:
+            key = self._removeParity(key)
+        elif len(key) != 7:
             self.printError("Invalid key length %d" % len(key))
 
         return key

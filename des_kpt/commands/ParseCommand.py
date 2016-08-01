@@ -31,6 +31,19 @@ class ParseCommand(Command):
 
         self._printParameters(plaintext, mask, None, None, ciphertext, None, None, None, encrypt)
 
+    def _bin(self, s):
+        return str(s) if s <=1 else bin(s>>1) + str(s&1)
+
+    def _removeParity(self, parity_key):
+        bits = bin(int(binascii.hexlify(parity_key), 16))[2:].rjust(64, "0")
+        i = 0
+        noparity = str()
+        for bit in bits:
+            if (i % 8) != 7:
+                noparity = noparity + bit
+            i = i + 1
+        return binascii.unhexlify("%x" % int(noparity, 2))
+
     def _getPlaintext(self):
         plaintext = self._getOptionValue("-p")
 

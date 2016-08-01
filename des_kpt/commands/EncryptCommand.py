@@ -27,7 +27,6 @@ class EncryptCommand(ParseCommand):
         iv        = self._getIV()
         pi        = ''.join(chr(ord(c1) ^ ord(c2)) for c1, c2 in zip(plaintext, cycle(iv)))
 
-
         key_parity = des.expand_des_key(key)
         des_obj = DES.new(key_parity, DES.MODE_ECB)
         ciphertext = des_obj.encrypt(pi)
@@ -42,7 +41,9 @@ class EncryptCommand(ParseCommand):
 
         key = binascii.unhexlify(key.replace(":", ""))
 
-        if len(key) != 7:
+        if len(key) == 8:
+            key = self._removeParity(key)
+        elif len(key) != 7:
             self.printError("Invalid key length %d" % len(key))
 
         return key

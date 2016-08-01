@@ -39,6 +39,8 @@ $ ./des_kpt.py decrypt -c 837c0dab74c3e41f -k 1044ca254cddc4 -i 0123456789abcdef
 
 This allows you to specify the `ciphertext`, `key`, and optional `iv` (in the case of cracking CFB, OFB, CTR, etc). Keep in mind that in these different modes the `iv` is counted as the value that's XORed with the `ciphertext`, not the IV that is used as the plaintext input to des_encrypt().
 
+NOTE: When you enter an 8-byte key, `des_kpt.py` will remove parity from the key and then recalculate parity to generate K and `KP`. If KP doesn't match the key you specified, it's probably because the parity is being corrected.
+
 Submit a Decrypt Job
 ----------------------
 
@@ -70,6 +72,8 @@ crack.sh Submission = $97$ASNFZ4mrze////////8AAIJfSMz9aAAA
 ```
 
 In this case we're performing a brute force encrypt (notice E = 1) which will return all keys that result in a `ciphertext` which matches `x & M == CT`. Note also that `CT` has already been masked by `M` like `PT` is in decrypt mode.
+
+NOTE: Results from crack.sh are 7-byte (56-bit) keys without parity. You can use `des_kpt.py encrypt` or `decrypt` to add parity to the key if needed.
 
 Kerberos
 --------
@@ -276,14 +280,6 @@ Bug tracker
 Have a bug? Please create an issue here on GitHub!
 
 https://github.com/h1kari/des_kpt/issues
-
-TODO
-----
-
-1. Make sure all data is extracted correctly from packets for kerberos
-2. Try to make Authenticator timestamp known plaintext based on the plaintext timestamp in the packet
-3. Add documentation on how the ASN1 known plaintext is deteremined
-4. Add parity key input option for encrypt/decrypt commands
 
 Copyright
 ---------
