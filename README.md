@@ -39,7 +39,7 @@ $ ./des_kpt.py decrypt -c 837c0dab74c3e41f -k 1044ca254cddc4 -i 0123456789abcdef
 
 This allows you to specify the `ciphertext`, `key`, and optional `iv` (in the case of cracking CFB, OFB, CTR, etc). Keep in mind that in these different modes the `iv` is counted as the value that's XORed with the `ciphertext`, not the IV that is used as the plaintext input to des_encrypt().
 
-NOTE: When you enter an 8-byte key, `des_kpt.py` will remove parity from the key and then recalculate parity to generate K and `KP`. If KP doesn't match the key you specified, it's probably because the parity is being corrected.
+*NOTE:* When you enter an 8-byte key, `des_kpt.py` will remove parity from the key and then recalculate parity to generate `K` and `KP`. If `KP` doesn't match the key you specified, it's probably because the parity is being corrected.
 
 Submit a Decrypt Job
 ----------------------
@@ -55,7 +55,7 @@ $ ./des_kpt.py parse -p 0123456789abcdef -m ffffffffffff0000 -c 825f48ccfd6829f0
 crack.sh Submission = $98$ASNFZ4mrze////////8AAIJfSMz9aCnw
 ```
 
-This is an example of a job that's performing a brute force decrypt (notice E = 0) and returns all keys that result in a `plaintext` which matches `x & M == PT`. Notice also that `PT` has been already masked by `M` as the masked out bits aren't needed.
+This is an example of a job that's performing a brute force decrypt (notice `E = 0`) and returns all keys that result in a `plaintext` which matches `x & M == PT`. Notice also that `PT` has been already masked by `M` as the masked out bits aren't needed.
 
 Submit an Encrypt Job
 ----------------------
@@ -71,7 +71,7 @@ $ ./des_kpt.py parse -p 0123456789abcdef -m ffffffffffff0000 -c 825f48ccfd6829f0
 crack.sh Submission = $97$ASNFZ4mrze////////8AAIJfSMz9aAAA
 ```
 
-In this case we're performing a brute force encrypt (notice E = 1) which will return all keys that result in a `ciphertext` which matches `x & M == CT`. Note also that `CT` has already been masked by `M` like `PT` is in decrypt mode.
+In this case we're performing a brute force encrypt (notice `E = 1`) which will return all keys that result in a `ciphertext` which matches `x & M == CT`. Note also that `CT` has already been masked by `M` like `PT` is in decrypt mode.
 
 NOTE: Results from crack.sh are 7-byte (56-bit) keys without parity. You can use `des_kpt.py encrypt` or `decrypt` to add parity to the key if needed.
 
@@ -196,15 +196,19 @@ The ASN.1 format of the messages that are encrypted has a number of known plaint
                                   #      0c85ba - Value=820666)
 ```
 
-We've identified the 3rd block of Plaintext (P3) as the one we're going to target. Because everything is encrypted with DES-CBC, it will be xor'ed with the Ciphertext of the previous block, so to determine our plaintext we'll do:
+We've identified the 3rd block of Plaintext `P3` as the one we're going to target. Because everything is encrypted with DES-CBC, it will be xor'ed with the Ciphertext of the previous block, so to determine our plaintext we'll do:
 
+```
 PT = CT2 ^ "\x18\x0f"+date("YYYYMM")
 CT = CT3
 M  = ffffffffffffffff
+```
 
 If you're iffy on the exact month that the server/client have their clock set to, you can adjust the mask so the job works regardless:
 
+```
 M  = ffffffffffffff00
+```
 
 **Tickets (TGT or ST)**
 
@@ -224,11 +228,13 @@ M  = ffffffffffffff00
 ...
 ```
 
-It's pretty safe to assume that P3 will be mostly static, the overall length of the message will change (and can be roughly determined by the encrypted message size) but the ASN.1 will stay the same. The following shows the rough calculation of PT for messages where the .Length value is between 128 and 255. The PT ASN.1 should be generated according to the actual enc-part length. To stay on the safe side, we currently only support message sizes between 128-256 and just use the top length bit as known plaintext (as it should always be high when the length extension is set to 81).
+It's pretty safe to assume that `P3` will be mostly static, the overall length of the message will change (and can be roughly determined by the encrypted message size) but the ASN.1 will stay the same. The following shows the rough calculation of PT for messages where the .Length value is between 128 and 255. The PT ASN.1 should be generated according to the actual enc-part length. To stay on the safe side, we currently only support message sizes between 128-256 and just use the top length bit as known plaintext (as it should always be high when the length extension is set to 81).
 
+```
 PT = CT2 ^ "\x81"+len(enc-part)-15-8+"\xa0\x07\x03\x05\x0000"
 CT = CT3
 M  = ff80ffffffffffff
+```
 
 **TGS enc-part**
 
@@ -249,11 +255,13 @@ M  = ff80ffffffffffff
 ...
 ```
 
-Same for this message, the only dynamic part of P3 is the length which can be roughly determined based on the enc-part length:
+Same for this message, the only dynamic part of `P3` is the length which can be roughly determined based on the enc-part length:
 
+```
 PT = CT2 ^ "\x81"+len(enc-part)-15-8+"\xa0\x13\x30\x11\xa0\x03"
 CT = CT3
 M  = ff80ffffffffffff
+```
 
 **DES-CBC-MD5?**
 
@@ -262,17 +270,17 @@ Note that all of these techniques can be easily adapted to work against DES-CBC-
 Printed Parameters
 ------------------
 
-| Parameter | Description |
-| --------- | ----------- |
-| `PT`      | Plaintext   |
-| `M`       | Mask        |
-| `IV`      | Initialization Vector, xor'ed with PT or CT depending on E |
-| `PT+IV`   | PT xor'ed with IV |
-| `CT`      | Ciphertext  |
-| `CT+IV`   | CT xor'ed with IV |
-| `K`       | 56-bit Key  |
-| `KP`      | 64-bit Key with Parity |
-| `E`       | 1 = Encrypt, 0 = Decrypt |
+| Parameter | Description                                                       |
+| --------- | ----------------------------------------------------------------- |
+| `PT`      | Plaintext                                                         |
+| `M`       | Mask                                                              |
+| `IV`      | Initialization Vector, xor'ed with `PT` or `CT` depending on `E`  |
+| `PT+IV`   | `PT` xor'ed with `IV`                                             |
+| `CT`      | Ciphertext                                                        |
+| `CT+IV`   | `CT` xor'ed with `IV`                                             |
+| `K`       | 56-bit Key                                                        |
+| `KP`      | 64-bit Key with Parity                                            |
+| `E`       | 1 = Encrypt, 0 = Decrypt                                          |
 
 Bug tracker
 -----------
