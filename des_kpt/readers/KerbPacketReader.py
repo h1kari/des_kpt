@@ -34,7 +34,7 @@ class KerbPacketReader(PacketReader):
         except:
             return ns[0]
 
-    def _parseForREQ(self, asn_data, ip_packet):
+    def _parseForREQ(self, timestamp, asn_data, ip_packet):
         # decode data just to parse to see if it's a KDC_REQ packet
         try:
             asn = decoder.decode(asn_data)[0]
@@ -86,7 +86,7 @@ class KerbPacketReader(PacketReader):
             tenc_packet = KerbPacket(asn,
                 socket.inet_ntoa(ip_packet.src),
                 socket.inet_ntoa(ip_packet.dst), asn[1],
-                cname, crealm, tname, trealm, tenc, 1)
+                cname, crealm, tname, trealm, tenc, 1, timestamp)
         except:
             tenc_packet = None
 
@@ -94,7 +94,7 @@ class KerbPacketReader(PacketReader):
             cenc_packet = KerbPacket(asn,
                 socket.inet_ntoa(ip_packet.src),
                 socket.inet_ntoa(ip_packet.dst), asn[1],
-                cname, crealm, tname, trealm, cenc, 0)
+                cname, crealm, tname, trealm, cenc, 0, timestamp)
         except:
             cenc_packet = None
 
@@ -102,7 +102,7 @@ class KerbPacketReader(PacketReader):
 
                 
 
-    def _parseForREP(self, asn_data, ip_packet):
+    def _parseForREP(self, timestamp, asn_data, ip_packet):
         # check to see if it's KRB packet
         try:
             asn = decoder.decode(asn_data)[0]
@@ -137,7 +137,7 @@ class KerbPacketReader(PacketReader):
             tenc_packet = KerbPacket(asn,
                 socket.inet_ntoa(ip_packet.src),
                 socket.inet_ntoa(ip_packet.dst), asn[1],
-                cname, crealm, tname, trealm, tenc, 1)
+                cname, crealm, tname, trealm, tenc, 1, timestamp)
         except:
             tenc_packet = None
 
@@ -145,13 +145,13 @@ class KerbPacketReader(PacketReader):
             cenc_packet = KerbPacket(asn,
                 socket.inet_ntoa(ip_packet.src),
                 socket.inet_ntoa(ip_packet.dst), asn[1],
-                cname, crealm, tname, trealm, cenc, 0)
+                cname, crealm, tname, trealm, cenc, 0, timestamp)
         except:
             cenc_packet = None
 
         return tenc_packet, cenc_packet
 
-    def _parseForTargetPacket(self, data):
+    def _parseForTargetPacket(self, timestamp, data):
         eth_packet = dpkt.ethernet.Ethernet(data)
 
         if isinstance(eth_packet.data, dpkt.ip.IP):
@@ -180,10 +180,10 @@ class KerbPacketReader(PacketReader):
                     test_req = True
 
             if test_rep:
-                return self._parseForREP(asn_data, ip_packet)
+                return self._parseForREP(timestamp, asn_data, ip_packet)
 
             if test_req:
-                return self._parseForREQ(asn_data, ip_packet)
+                return self._parseForREQ(timestamp, asn_data, ip_packet)
 
         return None
 

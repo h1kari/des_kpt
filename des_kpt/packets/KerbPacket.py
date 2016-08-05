@@ -14,7 +14,7 @@ __copyright__ = "Copyright 2016, David Hulton"
 
 class KerbPacket:
 
-    def __init__(self, asn, src, dst, rep, cname, crealm, tname, trealm, enc, is_ticket):
+    def __init__(self, asn, src, dst, rep, cname, crealm, tname, trealm, enc, is_ticket, timestamp):
         self.asn    = asn 
         self.src    = src
         self.dst    = dst
@@ -26,6 +26,7 @@ class KerbPacket:
         self.enc    = enc
         self.is_ticket = is_ticket
         self.mask   = str()
+        self.timestamp = timestamp
         self.pt     = self._calcPT()
 
     def getServerAddress(self):
@@ -61,7 +62,7 @@ class KerbPacket:
     def _getKPTAuth(self):
         kpt = str()
 
-        now = datetime.datetime.now()
+        now = datetime.datetime.utcfromtimestamp(self.timestamp)
         month = "%02d" % now.month
         kpt_str = "180f32303%s3%s3%s3%s" % (str(now.year)[2], str(now.year)[3], month[0], month[1])
         kpt = binascii.unhexlify(kpt_str)

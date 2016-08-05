@@ -18,7 +18,7 @@ class PacketReader:
 
     def __iter__(self):
         for timestamp, data in self.reader:
-            packets = self._parseForTargetPacket(data)
+            packets = self._parseForTargetPacket(timestamp, data)
 
             if packets:
                 packet1, packet2 = packets
