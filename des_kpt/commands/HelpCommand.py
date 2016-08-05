@@ -46,8 +46,8 @@ class HelpCommand:
             
     Commands (use "des_kpt.py help <command>" to see more):
       parse   -p <plaintext> -m <mask> -c <ciphertext> [-e]
-      encrypt -p <plaintext> -k <key> [-i <iv>] [-x]
-      decrypt -c <ciphertext> -k <key> [-i <iv>] [-x]
+      encrypt -p <plaintext> -k <key> [-i <iv>]
+      decrypt -c <ciphertext> -k <key> [-i <iv>]
       kerb    -i <input>
       help    <command>
 """)
