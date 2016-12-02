@@ -3,6 +3,18 @@ des_kpt
 
 This code allows you to submit known plaintext cracking jobs to the https://crack.sh DES cracking system by providing a way to verify your implementation matches and package up your job info into a token that can be submitted.
 
+Ubuntu Install Notes
+--------------------
+
+To install of the dependencies on Ubuntu, run the following commands:
+
+```
+$ sudo apt-get install python-pyasn1
+$ git clone https://github.com/CoreSecurity/impacket
+$ cd impacket
+$ sudo python setup.py install
+```
+
 Verifying Encryption
 --------------------
 
