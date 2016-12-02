@@ -6,7 +6,7 @@ This code allows you to submit known plaintext cracking jobs to the https://crac
 Ubuntu Install Notes
 --------------------
 
-To install of the dependencies on Ubuntu, run the following commands:
+To install all of the dependencies on Ubuntu, run the following commands:
 
 ```
 $ sudo apt-get install python-pyasn1
